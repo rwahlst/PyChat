@@ -50,7 +50,7 @@ class Controller():
     isClient: bool = False
     isServer: bool = False
     client: Client = None
-    server: Server = None
+    server: socketserver.TCPServer = None
     cursor: str = "> "
 
     def __init__(self, argv):
@@ -63,8 +63,8 @@ class Controller():
         if self.isClient:
             self.client = Client()
         elif self.isServer:
-            with socketserver.TCPServer((HOST, PORT), Server) as server:
-                server.serve_forever()
+            self.server = socketserver.TCPServer((HOST, PORT), Server)
+            self.server = self.server.serve_forever()
         else:
             print("Failed to initialize server or client subroutines: Please try again")
             exit(-1)
