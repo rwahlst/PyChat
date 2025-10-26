@@ -5,16 +5,44 @@
 
 import sys
 import os
+import socketserver
+import socket
 
-class Server():
+HOST, PORT = "localhost", 5535
 
-    def __init__(self):
-        print("Server")
+class Server(socketserver.BaseRequestHandler):
+
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        pieces = [b'']
+        total = 0
+        while b'\n' not in pieces[-1] and total < 10_000:
+            pieces.append(self.request.recv(2000))
+            total += len(pieces[-1])
+        self.data = b''.join(pieces)
+        print(f"Received from {self.client_address[0]}:")
+        print(self.data.decode("utf-8"))
+        # just send back the same data, but upper-cased
+        self.request.sendall(self.data.upper())
+        # after we return, the socket will be closed.
 
 class Client():
 
     def __init__(self):
-        print("Client")
+
+        data = "Hello, world!"
+        received = None
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((HOST, PORT))
+            sock.sendall(bytes(data, "utf-8"))
+            sock.sendall(b"\n")
+
+            received = str(sock.recv(1024), "utf-8")
+
+        print("Sent: " + data)
+        print("Received: " + received)
+
 
 class Controller():
 
@@ -35,7 +63,8 @@ class Controller():
         if self.isClient:
             self.client = Client()
         elif self.isServer:
-            self.server = Server()
+            with socketserver.TCPServer((HOST, PORT), Server) as server:
+                server.serve_forever()
         else:
             print("Failed to initialize server or client subroutines: Please try again")
             exit(-1)
